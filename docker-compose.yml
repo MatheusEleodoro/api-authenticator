@@ -1,0 +1,68 @@
+version: '3.9'
+services:
+  keycloakdb:
+    image: mysql:5.7
+    ports:
+      - 3306:3306
+    restart: unless-stopped
+    environment:
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: keycloak_db
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - kcdbvolume:/var/lib/mysql
+    networks:
+      - authenticator-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    command: start-dev
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN : admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: mysql
+      KC_DB_USERNAME: user
+      KC_DB_PASSWORD: password
+      KC_DB_URL: jdbc:mysql://keycloakdb:3306/keycloak_db
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
+#      PROXY_ADDRESS_FORWARDING: 'true' // deploying on vps server
+#      KC_PROXY: edge // deploying on vps server
+      KC_HOSTNAME: keycloak
+#      KC_HOSTNAME_STRICT_HTTPS: 'true' // deploying on vps server
+    depends_on:
+      - keycloakdb
+    networks:
+      - authenticator-network
+
+  authenticator:
+    image: authenticator:1.0
+    env_file:
+      - .env
+    depends_on:
+      - keycloak
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    working_dir: /app/api-authenticator
+    container_name: authenticator
+    restart: on-failure
+    ports:
+      - 8081:8081
+    volumes:
+      - .m2:/root/.m2
+    stdin_open: true
+    tty: true
+    networks:
+      - authenticator-network
+
+
+networks:
+  authenticator-network:
+    driver: bridge
+
+volumes:
+  kcdbvolume:

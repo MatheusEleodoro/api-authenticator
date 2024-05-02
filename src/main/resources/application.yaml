@@ -1,0 +1,21 @@
+server:
+  port: ${SPRING_PORT}
+spring:
+  application:
+    name: api-autenticator
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${CLIENT_ID}
+            client-secret: ${CLIENT_SECRET}
+            scope: openid
+        provider:
+          keycloak:
+            issuer-uri: ${AUTH_PROVIDER}
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH_PROVIDER}
